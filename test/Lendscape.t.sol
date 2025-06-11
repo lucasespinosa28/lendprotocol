@@ -55,45 +55,15 @@ contract LendscapeTest is Test {
 
         // Expect the NFTListed event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit ILendscape.NFTListed(
-            1,
-            lender,
-            address(mockNft),
-            nftTokenId,
-            loanAmount,
-            interestRate,
-            duration
-        );
+        emit ILendscape.NFTListed(1, lender, address(mockNft), nftTokenId, loanAmount, interestRate, duration);
 
-        lendscape.listNFT(
-            address(mockNft),
-            nftTokenId,
-            loanAmount,
-            interestRate,
-            duration
-        );
+        lendscape.listNFT(address(mockNft), nftTokenId, loanAmount, interestRate, duration);
 
         // Verify NFT is now owned by the contract
-        assertEq(
-            mockNft.ownerOf(nftTokenId),
-            address(lendscape),
-            "Contract should own the NFT"
-        );
+        assertEq(mockNft.ownerOf(nftTokenId), address(lendscape), "Contract should own the NFT");
 
         // Verify loan details
-        (
-            ,
-            address loanLender,
-            ,
-            ,
-            ,
-            uint256 amount,
-            ,
-            ,
-            ,
-            bool active,
-
-        ) = lendscape.loans(1);
+        (, address loanLender,,,, uint256 amount,,,, bool active,) = lendscape.loans(1);
         assertEq(loanLender, lender, "Lender address is incorrect");
         assertEq(amount, loanAmount, "Loan amount is incorrect");
         assertTrue(active, "Loan should be active");
@@ -109,13 +79,7 @@ contract LendscapeTest is Test {
         // 1. Lender lists the NFT
         vm.startPrank(lender);
         mockNft.approve(address(lendscape), nftTokenId);
-        lendscape.listNFT(
-            address(mockNft),
-            nftTokenId,
-            loanAmount,
-            interestRate,
-            duration
-        );
+        lendscape.listNFT(address(mockNft), nftTokenId, loanAmount, interestRate, duration);
         vm.stopPrank();
 
         // 2. Borrower borrows the NFT
@@ -123,32 +87,13 @@ contract LendscapeTest is Test {
         // Expect LoanCreated event
         vm.expectEmit(true, true, true, false);
         emit ILendscape.LoanCreated(
-            1,
-            lender,
-            borrower,
-            address(mockNft),
-            nftTokenId,
-            loanAmount,
-            interestRate,
-            duration
+            1, lender, borrower, address(mockNft), nftTokenId, loanAmount, interestRate, duration
         );
 
         lendscape.borrowNFT{value: loanAmount}(1);
 
         // Verify loan details
-        (
-            ,
-            ,
-            address loanBorrower,
-            ,
-            ,
-            ,
-            ,
-            ,
-            uint256 startTime,
-            ,
-
-        ) = lendscape.loans(1);
+        (,, address loanBorrower,,,,,, uint256 startTime,,) = lendscape.loans(1);
         assertEq(loanBorrower, borrower, "Borrower address is incorrect");
         assertGt(startTime, 0, "Start time should be set");
         vm.stopPrank();
@@ -161,13 +106,7 @@ contract LendscapeTest is Test {
         // 1. Lender lists the NFT
         vm.startPrank(lender);
         mockNft.approve(address(lendscape), nftTokenId);
-        lendscape.listNFT(
-            address(mockNft),
-            nftTokenId,
-            loanAmount,
-            interestRate,
-            duration
-        );
+        lendscape.listNFT(address(mockNft), nftTokenId, loanAmount, interestRate, duration);
         vm.stopPrank();
 
         // 2. Borrower attempts to borrow with not enough value
@@ -201,33 +140,13 @@ contract LendscapeTest is Test {
         lendscape.repayLoan{value: repayAmount}(1);
 
         // Verify NFT is returned to the borrower
-        assertEq(
-            mockNft.ownerOf(nftTokenId),
-            borrower,
-            "Borrower should own the NFT after repayment"
-        );
+        assertEq(mockNft.ownerOf(nftTokenId), borrower, "Borrower should own the NFT after repayment");
 
         // Verify lender received the payment
-        assertEq(
-            lender.balance,
-            lenderInitialBalance + repayAmount,
-            "Lender did not receive correct payment"
-        );
+        assertEq(lender.balance, lenderInitialBalance + repayAmount, "Lender did not receive correct payment");
 
         // Verify loan is no longer active
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            bool active,
-            bool repaid
-        ) = lendscape.loans(1);
+        (,,,,,,,,, bool active, bool repaid) = lendscape.loans(1);
         assertFalse(active, "Loan should be inactive");
         assertTrue(repaid, "Loan should be marked as repaid");
         vm.stopPrank();
@@ -258,25 +177,9 @@ contract LendscapeTest is Test {
         // The NFT is transferred to the lender in a real scenario.
         // In this implementation, the collateral is sent to the lender.
         // A more complex implementation might give the NFT to the lender.
-        assertEq(
-            lender.balance,
-            lenderInitialBalance + loanAmount,
-            "Lender did not receive collateral"
-        );
+        assertEq(lender.balance, lenderInitialBalance + loanAmount, "Lender did not receive collateral");
 
-        (
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            ,
-            bool active,
-            bool repaid
-        ) = lendscape.loans(1);
+        (,,,,,,,,, bool active, bool repaid) = lendscape.loans(1);
         assertFalse(active, "Loan should be inactive after liquidation");
         assertFalse(repaid, "Loan should not be marked as repaid");
         vm.stopPrank();

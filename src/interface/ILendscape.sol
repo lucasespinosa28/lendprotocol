@@ -57,11 +57,7 @@ interface ILendscape {
      * @param borrower The address of the borrower.
      * @param amountPaid The total amount paid to repay the loan.
      */
-    event LoanRepaid(
-        uint256 indexed loanId,
-        address indexed borrower,
-        uint256 amountPaid
-    );
+    event LoanRepaid(uint256 indexed loanId, address indexed borrower, uint256 amountPaid);
 
     /**
      * @notice Emitted when a loan is liquidated.
@@ -78,13 +74,8 @@ interface ILendscape {
      * @param interestRate The interest rate of the loan.
      * @param duration The duration of the loan.
      */
-    function listNFT(
-        address nftContract,
-        uint256 tokenId,
-        uint256 loanAmount,
-        uint256 interestRate,
-        uint256 duration
-    ) external;
+    function listNFT(address nftContract, uint256 tokenId, uint256 loanAmount, uint256 interestRate, uint256 duration)
+        external;
 
     /**
      * @notice Borrows an NFT.

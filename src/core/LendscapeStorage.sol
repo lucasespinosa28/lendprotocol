@@ -41,4 +41,3 @@ contract LendscapeStorage {
     // The address of the contract owner.
     address public owner;
 }
-

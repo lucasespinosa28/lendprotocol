@@ -27,13 +27,11 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
      * @param interestRate The interest rate of the loan.
      * @param duration The duration of the loan.
      */
-    function listNFT(
-        address nftContract,
-        uint256 tokenId,
-        uint256 loanAmount,
-        uint256 interestRate,
-        uint256 duration
-    ) external override nonReentrant {
+    function listNFT(address nftContract, uint256 tokenId, uint256 loanAmount, uint256 interestRate, uint256 duration)
+        external
+        override
+        nonReentrant
+    {
         require(loanAmount > 0, "Loan amount must be greater than 0");
         require(interestRate > 0, "Interest rate must be greater than 0");
         require(duration > 0, "Duration must be greater than 0");
@@ -59,15 +57,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
 
         users[msg.sender].lentNFTs.push(loanId);
 
-        emit NFTListed(
-            loanId,
-            msg.sender,
-            nftContract,
-            tokenId,
-            loanAmount,
-            interestRate,
-            duration
-        );
+        emit NFTListed(loanId, msg.sender, nftContract, tokenId, loanAmount, interestRate, duration);
     }
 
     /**
@@ -119,11 +109,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
         users[loan.borrower].accumulatedInterest += interest;
 
         payable(loan.lender).transfer(totalAmount);
-        IERC721(loan.nftContract).transferFrom(
-            address(this),
-            loan.borrower,
-            loan.tokenId
-        );
+        IERC721(loan.nftContract).transferFrom(address(this), loan.borrower, loan.tokenId);
 
         emit LoanRepaid(loanId, loan.borrower, totalAmount);
     }
@@ -135,10 +121,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
     function liquidateLoan(uint256 loanId) external override nonReentrant {
         Loan storage loan = loans[loanId];
 
-        require(
-            block.timestamp >= loan.startTime + loan.duration,
-            "Loan has not expired yet"
-        );
+        require(block.timestamp >= loan.startTime + loan.duration, "Loan has not expired yet");
         require(!loan.repaid, "Loan has already been repaid");
         require(loan.active, "Loan is not active");
 
@@ -154,17 +137,13 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
      * @param loanId The ID of the loan.
      * @return The interest amount.
      */
-    function calculateInterest(
-        uint256 loanId
-    ) public view override returns (uint256) {
+    function calculateInterest(uint256 loanId) public view override returns (uint256) {
         Loan storage loan = loans[loanId];
         if (!loan.active || loan.borrower == address(0)) {
             return 0;
         }
 
         uint256 timeElapsed = block.timestamp - loan.startTime;
-        return
-            (loan.loanAmount * loan.interestRate * timeElapsed) /
-            (100 * 365 days);
+        return (loan.loanAmount * loan.interestRate * timeElapsed) / (100 * 365 days);
     }
 }
