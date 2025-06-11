@@ -18,8 +18,8 @@ contract LendscapeTest is Test {
     MockNFT public mockNft;
 
     // Users
-    address public lender = address(1);
-    address public borrower = address(2);
+    address public lender;
+    address public borrower;
 
     // Loan parameters
     uint256 public loanAmount = 1 ether;
@@ -31,6 +31,10 @@ contract LendscapeTest is Test {
      * @notice Sets up the test environment before each test case.
      */
     function setUp() public {
+        // Define users
+        lender = vm.addr(0x1);
+        borrower = vm.addr(0x2);
+
         // Deploy contracts
         lendscape = new Lendscape();
         mockNft = new MockNFT();
@@ -40,8 +44,9 @@ contract LendscapeTest is Test {
         nftTokenId = mockNft.mint(lender);
         vm.stopPrank();
 
-        // Give some ETH to the borrower for collateral
-        vm.deal(borrower, 5 ether);
+        // Give some ETH to the lender and borrower
+        vm.deal(lender, 10 ether); // For collateral in liquidation
+        vm.deal(borrower, 5 ether); // For borrowing
     }
 
     //--- Test listNFT ---
