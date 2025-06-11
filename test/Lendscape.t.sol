@@ -5,6 +5,7 @@ import {Test, console} from "forge-std/Test.sol";
 import {Lendscape} from "../src/core/Lendscape.sol";
 import {MockNFT} from "./mock/MockNFT.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
+import {ILendscape} from "../src/interface/ILendscape.sol"; // keep this import if you want to use types, but not required
 
 /**
  * @title LendscapeTest
@@ -54,7 +55,7 @@ contract LendscapeTest is Test {
 
         // Expect the NFTListed event to be emitted
         vm.expectEmit(true, true, true, true);
-        emit NFTListed(
+        emit ILendscape.NFTListed(
             1,
             lender,
             address(mockNft),
@@ -121,7 +122,7 @@ contract LendscapeTest is Test {
         vm.startPrank(borrower);
         // Expect LoanCreated event
         vm.expectEmit(true, true, true, false);
-        emit LoanCreated(
+        emit ILendscape.LoanCreated(
             1,
             lender,
             borrower,
@@ -195,7 +196,7 @@ contract LendscapeTest is Test {
 
         // Expect LoanRepaid event
         vm.expectEmit(true, true, false, false);
-        emit LoanRepaid(1, borrower, repayAmount);
+        emit ILendscape.LoanRepaid(1, borrower, repayAmount);
 
         lendscape.repayLoan{value: repayAmount}(1);
 
@@ -250,7 +251,7 @@ contract LendscapeTest is Test {
 
         // Expect LoanLiquidated event
         vm.expectEmit(true, true, false, false);
-        emit LoanLiquidated(1, lender);
+        emit ILendscape.LoanLiquidated(1, lender);
 
         lendscape.liquidateLoan(1);
 
