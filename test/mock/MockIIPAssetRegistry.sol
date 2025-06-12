@@ -13,32 +13,39 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
     uint256 private _totalSupply;
     address private _ipAccountImpl;
 
+    // Implements IIPAccountRegistry
+    function ipAccount(uint256 chainId, address tokenContract, uint256 tokenId)
+        external
+        view
+        override
+        returns (address)
+    {
+        return _ipIds[chainId][tokenContract][tokenId];
+    }
+
+    function getIPAccountImpl() external view override returns (address) {
+        return _ipAccountImpl;
+    }
+
+    // Implements IIPAssetRegistry
     function ipId(uint256 chainId, address tokenContract, uint256 tokenId) external view override returns (address) {
         return _ipIds[chainId][tokenContract][tokenId];
     }
 
-    function isRegistered(address ipId) external view override returns (bool) {
-        return _isRegistered[ipId];
+    function isRegistered(address ipIdAddr) external view override returns (bool) {
+        return _isRegistered[ipIdAddr];
     }
 
-    function setIpId(uint256 chainId, address tokenContract, uint256 tokenId, address ipId) external {
-        _ipIds[chainId][tokenContract][tokenId] = ipId;
+    // Helper functions for testing (not part of interface)
+    function setIpId(uint256 chainId, address tokenContract, uint256 tokenId, address ipIdAddr) external {
+        _ipIds[chainId][tokenContract][tokenId] = ipIdAddr;
     }
 
-    function setRegistered(address ipId, bool registered) external {
-        _isRegistered[ipId] = registered;
+    function setRegistered(address ipIdAddr, bool registered) external {
+        _isRegistered[ipIdAddr] = registered;
     }
 
-    function attachLicense(address, address, uint256) external override {}
-    function detachLicense(address, address, uint256) external override {}
-    function parentIpId(address) external view override returns (address) { return address(0); }
-    function rootIpId(address) external view override returns (address) { return address(0); }
-
-    function register(
-        uint256 chainId,
-        address tokenContract,
-        uint256 tokenId
-    ) external override returns (address id) {
+    function register(uint256 chainId, address tokenContract, uint256 tokenId) external override returns (address id) {
         // Mock: generate a pseudo-random address for the IP
         id = address(uint160(uint256(keccak256(abi.encodePacked(chainId, tokenContract, tokenId, block.timestamp)))));
         _ipIds[chainId][tokenContract][tokenId] = id;
@@ -47,13 +54,10 @@ contract MockIIPAssetRegistry is IIPAssetRegistry {
         emit IPRegistered(id, chainId, tokenContract, tokenId, "", "", block.timestamp);
     }
 
-    function register(
-        uint256 chainId,
-        address tokenContract,
-        uint256 tokenId,
-        string calldata,
-        address
-    ) external override returns (address) {
+    function register(uint256 chainId, address tokenContract, uint256 tokenId, string calldata, address)
+        external
+        returns (address)
+    {
         // Mock: call the basic register
         return this.register(chainId, tokenContract, tokenId);
     }

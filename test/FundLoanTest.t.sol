@@ -11,7 +11,9 @@ contract FundLoanTest is LendscapeTestBase {
         super.setUp();
         vm.startPrank(borrower);
         nft.approve(address(lendscape), collateralTokenId);
-        lendscape.createLoanRequest(address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
+        lendscape.createLoanRequest(
+            address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION
+        );
         vm.stopPrank();
     }
 
@@ -21,16 +23,40 @@ contract FundLoanTest is LendscapeTestBase {
 
         vm.startPrank(lender);
         loanToken.approve(address(lendscape), LOAN_AMOUNT);
-        
+
         vm.expectEmit(true, true, true, true);
         emit ILendscape.LoanFunded(loanId, ipId, borrower, lender, LOAN_AMOUNT);
 
         lendscape.fundLoan(loanId);
         vm.stopPrank();
 
-        Lendscape.Loan memory loan = lendscape.loans(loanId);
-        assertTrue(loan.funded);
-        assertEq(loan.lender, lender);
+        ( /* uint256 id */
+            ,
+            /* address ipId */
+            ,
+            /* address borrower */
+            ,
+            address lender_,
+            /* address nftContract */
+            ,
+            /* uint256 tokenId */
+            ,
+            /* address loanToken */
+            ,
+            /* uint256 loanAmount */
+            ,
+            /* uint256 repaymentAmount */
+            ,
+            /* uint256 duration */
+            ,
+            /* uint256 startTime */
+            ,
+            bool funded_,
+            /* bool repaid */
+        ) = lendscape.loans(loanId);
+
+        assertTrue(funded_);
+        assertEq(lender_, lender);
         assertEq(loanToken.balanceOf(lender), lenderInitialBalance - LOAN_AMOUNT);
         assertEq(loanToken.balanceOf(borrower), borrowerInitialBalance + LOAN_AMOUNT);
     }

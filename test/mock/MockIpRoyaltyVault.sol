@@ -21,32 +21,33 @@ contract MockIpRoyaltyVault is IIpRoyaltyVault {
     function claimRevenueOnBehalf(address claimer, address token) external override returns (uint256 amount) {
         amount = revenues[claimer][token];
         revenues[claimer][token] = 0;
+        // Transfer the claimed tokens from the vault to the claimer
+        if (amount > 0) {
+            // Assumes token is a standard ERC20 with transfer function
+            // solhint-disable-next-line avoid-low-level-calls
+            (bool success,) = token.call(abi.encodeWithSignature("transfer(address,uint256)", claimer, amount));
+            require(success, "MockIpRoyaltyVault: transfer failed");
+        }
         emit RevenueTokenClaimed(claimer, token, amount);
     }
 
-    function claimableRevenueOnBehalf(address, address, address) external pure override returns (uint256) {
+    function claimableRevenueOnBehalf(address, address, address) external pure returns (uint256) {
         return 0;
     }
 
-    function snapshot() external pure override returns (uint256) {
+    function snapshot() external pure returns (uint256) {
         return 0;
     }
 
-    function onTokenTransfer(address, address, uint256) external pure override returns (bool) {
+    function onTokenTransfer(address, address, uint256) external pure returns (bool) {
         return true;
     }
 
-    function supportsInterface(bytes4) external pure override returns (bool) {
+    function supportsInterface(bytes4) external pure returns (bool) {
         return true;
     }
 
-    function initialize(
-        string memory,
-        string memory,
-        uint32,
-        address ipIdAddress,
-        address
-    ) external override {
+    function initialize(string memory, string memory, uint32, address ipIdAddress, address) external override {
         _ipId = ipIdAddress;
     }
 
@@ -65,10 +66,11 @@ contract MockIpRoyaltyVault is IIpRoyaltyVault {
         emit RevenueTokenAddedToVault(token, amount);
     }
 
-    function claimRevenueOnBehalfByTokenBatch(
-        address claimer,
-        address[] calldata tokenList
-    ) external override returns (uint256[] memory amounts) {
+    function claimRevenueOnBehalfByTokenBatch(address claimer, address[] calldata tokenList)
+        external
+        override
+        returns (uint256[] memory amounts)
+    {
         amounts = new uint256[](tokenList.length);
         for (uint256 i = 0; i < tokenList.length; i++) {
             amounts[i] = revenues[claimer][tokenList[i]];

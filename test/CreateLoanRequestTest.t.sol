@@ -16,25 +16,62 @@ contract CreateLoanRequestTest is LendscapeTestBase {
 
     function test_createLoanRequest_succeeds() public {
         vm.startPrank(borrower);
-        
-        vm.expectEmit(true, true, true, true);
-        emit ILendscape.LoanRequested(loanId, ipId, borrower, address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
-        
-        lendscape.createLoanRequest(address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
 
-        Lendscape.Loan memory loan = lendscape.loans(loanId);
-        assertEq(loan.borrower, borrower);
-        assertEq(loan.nftContract, address(nft));
-        assertEq(loan.tokenId, collateralTokenId);
+        vm.expectEmit(true, true, true, true);
+        emit ILendscape.LoanRequested(
+            loanId,
+            ipId,
+            borrower,
+            address(nft),
+            collateralTokenId,
+            address(loanToken),
+            LOAN_AMOUNT,
+            REPAYMENT_AMOUNT,
+            DURATION
+        );
+
+        lendscape.createLoanRequest(
+            address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION
+        );
+
+        ( /* uint256 id */
+            ,
+            /* address ipId */
+            ,
+            address borrower_,
+            /* address lender */
+            ,
+            address nftContract_,
+            uint256 tokenId_,
+            /* address loanToken */
+            ,
+            /* uint256 loanAmount */
+            ,
+            /* uint256 repaymentAmount */
+            ,
+            /* uint256 duration */
+            ,
+            /* uint256 startTime */
+            ,
+            /* bool funded */
+            ,
+            /* bool repaid */
+        ) = lendscape.loans(loanId);
+
+        assertEq(borrower_, borrower);
+        assertEq(nftContract_, address(nft));
+        assertEq(tokenId_, collateralTokenId);
         assertEq(nft.ownerOf(collateralTokenId), address(lendscape));
     }
 
     function test_revert_if_not_nft_owner() public {
         vm.startPrank(otherUser);
-        nft.approve(address(lendscape), collateralTokenId);
-        
+
         vm.expectRevert("You are not the owner of this NFT");
-        lendscape.createLoanRequest(address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
+        lendscape.createLoanRequest(
+            address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION
+        );
+        vm.stopPrank();
     }
 
     function test_revert_if_loan_amount_is_zero() public {

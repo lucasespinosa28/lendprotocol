@@ -12,7 +12,9 @@ contract LiquidateLoanTest is LendscapeTestBase {
         // Create and fund the loan
         vm.startPrank(borrower);
         nft.approve(address(lendscape), collateralTokenId);
-        lendscape.createLoanRequest(address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
+        lendscape.createLoanRequest(
+            address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION
+        );
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -34,15 +36,40 @@ contract LiquidateLoanTest is LendscapeTestBase {
         vm.stopPrank();
 
         assertEq(nft.ownerOf(collateralTokenId), lender);
-        Lendscape.Loan memory loan = lendscape.loans(loanId);
-        assertTrue(loan.repaid); // Repaid flag is used to close the loan
+        ( /* uint256 id */
+            ,
+            /* address ipId */
+            ,
+            /* address borrower */
+            ,
+            /* address lender */
+            ,
+            /* address nftContract */
+            ,
+            /* uint256 tokenId */
+            ,
+            /* address loanToken */
+            ,
+            /* uint256 loanAmount */
+            ,
+            /* uint256 repaymentAmount */
+            ,
+            /* uint256 duration */
+            ,
+            /* uint256 startTime */
+            ,
+            /* bool funded */
+            ,
+            bool repaid_
+        ) = lendscape.loans(loanId);
+        assertTrue(repaid_);
     }
-    
+
     function test_liquidateLoan_succeeds_repays_with_royalties() public {
         // Setup royalties to be greater than repayment
         uint256 royaltyAmount = REPAYMENT_AMOUNT + 1 ether;
         royaltyVault.setClaimableRevenue(ipId, address(loanToken), royaltyAmount);
-        
+
         // Simulate the royalty vault holding the funds
         loanToken.mint(address(royaltyVault), royaltyAmount);
 
@@ -64,7 +91,7 @@ contract LiquidateLoanTest is LendscapeTestBase {
 
         lendscape.liquidateLoan(loanId);
         vm.stopPrank();
-        
+
         assertEq(nft.ownerOf(collateralTokenId), borrower); // NFT returns to borrower
         assertEq(loanToken.balanceOf(lender), lenderInitialBalance + REPAYMENT_AMOUNT);
         assertEq(loanToken.balanceOf(borrower), borrowerInitialBalance + (royaltyAmount - REPAYMENT_AMOUNT)); // Gets excess

@@ -53,21 +53,13 @@ contract MockRoyaltyModule is IRoyaltyModule {
         emit ExternalRoyaltyPolicyRegistered(externalRoyaltyPolicy);
     }
 
-    function onLicenseMinting(
-        address,
-        address,
-        uint32,
-        bytes calldata
-    ) external pure override {}
+    function onLicenseMinting(address, address, uint32, bytes calldata) external pure override {}
 
-    function onLinkToParents(
-        address,
-        address[] calldata,
-        address[] calldata,
-        uint32[] calldata,
-        bytes calldata,
-        uint32
-    ) external pure override {}
+    function onLinkToParents(address, address[] calldata, address[] calldata, uint32[] calldata, bytes calldata, uint32)
+        external
+        pure
+        override
+    {}
 
     function payRoyaltyOnBehalf(address, address, address, uint256) external pure override {}
 
@@ -133,11 +125,12 @@ contract MockRoyaltyModule is IRoyaltyModule {
         return _totalRevenueTokensReceived[ipId][token];
     }
 
-    function totalRevenueTokensAccounted(
-        address ipId,
-        address token,
-        address royaltyPolicy
-    ) external view override returns (uint256) {
+    function totalRevenueTokensAccounted(address ipId, address token, address royaltyPolicy)
+        external
+        view
+        override
+        returns (uint256)
+    {
         return _totalRevenueTokensAccounted[ipId][token][royaltyPolicy];
     }
 

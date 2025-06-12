@@ -12,7 +12,9 @@ contract RepayLoanTest is LendscapeTestBase {
         // Create and fund the loan
         vm.startPrank(borrower);
         nft.approve(address(lendscape), collateralTokenId);
-        lendscape.createLoanRequest(address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION);
+        lendscape.createLoanRequest(
+            address(nft), collateralTokenId, address(loanToken), LOAN_AMOUNT, REPAYMENT_AMOUNT, DURATION
+        );
         vm.stopPrank();
 
         vm.startPrank(lender);
@@ -33,11 +35,36 @@ contract RepayLoanTest is LendscapeTestBase {
 
         lendscape.repayLoan(loanId);
         vm.stopPrank();
-
         assertEq(nft.ownerOf(collateralTokenId), borrower);
         assertEq(loanToken.balanceOf(lender), lenderInitialBalance + REPAYMENT_AMOUNT);
-        Lendscape.Loan memory loan = lendscape.loans(loanId);
-        assertTrue(loan.repaid);
+
+        ( /* uint256 id */
+            ,
+            /* address ipId */
+            ,
+            address borrower_,
+            /* address lender */
+            ,
+            /* address nftContract */
+            ,
+            /* uint256 tokenId */
+            ,
+            /* address loanToken */
+            ,
+            /* uint256 loanAmount */
+            ,
+            /* uint256 repaymentAmount */
+            ,
+            /* uint256 duration */
+            ,
+            /* uint256 startTime */
+            ,
+            /* bool funded */
+            ,
+            bool repaid_
+        ) = lendscape.loans(loanId);
+
+        assertTrue(repaid_);
     }
 
     function test_revert_if_not_borrower() public {

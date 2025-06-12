@@ -14,24 +14,18 @@ contract MockIIPAccount is IIPAccount {
 
     receive() external payable {}
 
-    function execute(
-        address to,
-        uint256,
-        bytes calldata data
-    ) external payable override returns (bytes memory) {
+    function execute(address to, uint256, bytes calldata data) external payable override returns (bytes memory) {
         (bool success, bytes memory result) = to.call{value: msg.value}(data);
         require(success, "MockIIPAccount: execution failed");
         return result;
     }
 
-    function executeWithSig(
-        address to,
-        uint256,
-        bytes calldata data,
-        address,
-        uint256,
-        bytes calldata
-    ) external payable override returns (bytes memory) {
+    function executeWithSig(address to, uint256, bytes calldata data, address, uint256, bytes calldata)
+        external
+        payable
+        override
+        returns (bytes memory)
+    {
         // Mock: just call execute
         (bool success, bytes memory result) = to.call{value: msg.value}(data);
         require(success, "MockIIPAccount: execution failed");
@@ -53,5 +47,48 @@ contract MockIIPAccount is IIPAccount {
     function updateStateForValidSigner(address, address, bytes calldata) external override {
         // Mock: just increment state
         _state = bytes32(uint256(_state) + 1);
+    }
+
+    // IERC165
+    function supportsInterface(bytes4) external pure override returns (bool) {
+        return true;
+    }
+
+    // IIPAccountStorage stubs
+    function setBytes(bytes32, bytes calldata) external override {}
+    function setBytesBatch(bytes32[] calldata, bytes[] calldata) external override {}
+
+    function getBytes(bytes32) external pure override returns (bytes memory) {
+        return "";
+    }
+
+    function getBytes(bytes32, bytes32) external pure override returns (bytes memory) {
+        return "";
+    }
+
+    function getBytesBatch(bytes32[] calldata, bytes32[] calldata) external pure override returns (bytes[] memory) {
+        // Mock: return empty array
+        return new bytes[](0);
+    }
+
+    function getBytes32(bytes32) external pure override returns (bytes32) {
+        return bytes32(0);
+    }
+
+    function getBytes32(bytes32, bytes32) external pure override returns (bytes32) {
+        return bytes32(0);
+    }
+
+    function setBytes32(bytes32, bytes32) external override {}
+    function setBytes32Batch(bytes32[] calldata, bytes32[] calldata) external override {}
+
+    function getBytes32Batch(bytes32[] calldata, bytes32[] calldata)
+        external
+        pure
+        override
+        returns (bytes32[] memory)
+    {
+        // Mock: return empty array
+        return new bytes32[](0);
     }
 }

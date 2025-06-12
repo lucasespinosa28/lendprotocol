@@ -52,7 +52,7 @@ contract LendscapeTestBase is Test {
 
         // Configure Story Protocol Mocks
         ipId = address(ipAccount);
-        
+
         registry.setIpId(block.chainid, address(nft), collateralTokenId, ipId);
         registry.setRegistered(ipId, true);
         royaltyModule.setIpRoyaltyVault(ipId, address(royaltyVault));
