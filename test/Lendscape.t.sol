@@ -43,6 +43,9 @@ contract LendscapeTest is Test {
 
         // Give Alice (Lender) some ETH to fund the loan
         vm.deal(alice_lender, 5 ether);
+
+        // Give Bob (Borrower) some ETH to make the repayment + gas
+        vm.deal(bob_borrower, 1 ether);
     }
 
     /**
