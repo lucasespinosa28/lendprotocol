@@ -10,11 +10,13 @@ contract LendscapeStorage {
     // A struct to store information about each loan.
     struct Loan {
         uint256 id;
+        address ipId; // The Story Protocol IP ID
         address borrower; // The owner of the NFT who wants the loan
         address lender; // The user who provides the ETH for the loan
         address nftContract;
         uint256 tokenId;
-        uint256 loanAmount; // The amount of ETH lent to the borrower
+        address loanToken; // The ERC20 token for the loan
+        uint256 loanAmount; // The amount of the ERC20 lent to the borrower
         uint256 repaymentAmount; // The total amount the borrower must repay
         uint256 duration;
         uint256 startTime;
