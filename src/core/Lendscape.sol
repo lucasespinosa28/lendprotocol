@@ -9,7 +9,8 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 /**
  * @title Lendscape
  * @author Your Name
- * @notice This contract implements the core functionality of the Lendscape NFT lending and borrowing platform.
+ * @notice This contract implements a peer-to-peer NFT-collateralized lending platform.
+ * A borrower lists an NFT as collateral, and a lender funds the loan with ETH.
  */
 contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
     /**
@@ -20,22 +21,32 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
     }
 
     /**
-     * @notice Lists an NFT for lending.
+     * @notice Creates a loan request by putting an NFT up as collateral.
      * @param nftContract The address of the NFT contract.
-     * @param tokenId The ID of the NFT.
-     * @param loanAmount The amount of the loan.
-     * @param interestRate The interest rate of the loan.
-     * @param duration The duration of the loan.
+     * @param tokenId The ID of the NFT being used as collateral.
+     * @param loanAmount The amount of ETH the borrower wants to receive.
+     * @param repaymentAmount The total amount of ETH to be repaid.
+     * @param duration The duration of the loan in seconds.
      */
-    function listNFT(address nftContract, uint256 tokenId, uint256 loanAmount, uint256 interestRate, uint256 duration)
-        external
-        override
-        nonReentrant
-    {
-        require(loanAmount > 0, "Loan amount must be greater than 0");
-        require(interestRate > 0, "Interest rate must be greater than 0");
-        require(duration > 0, "Duration must be greater than 0");
+    function createLoanRequest(
+        address nftContract,
+        uint256 tokenId,
+        uint256 loanAmount,
+        uint256 repaymentAmount,
+        uint256 duration
+    ) external override nonReentrant {
+        require(loanAmount > 0, "Loan amount must be positive");
+        require(
+            repaymentAmount > loanAmount,
+            "Repayment must be greater than loan amount"
+        );
+        require(duration > 0, "Duration must be positive");
+        require(
+            IERC721(nftContract).ownerOf(tokenId) == msg.sender,
+            "You are not the owner of this NFT"
+        );
 
+        // Transfer the NFT from the borrower to the contract to be held as collateral
         IERC721(nftContract).transferFrom(msg.sender, address(this), tokenId);
 
         loanCounter++;
@@ -43,107 +54,112 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
 
         loans[loanId] = Loan({
             id: loanId,
-            lender: msg.sender,
-            borrower: address(0),
+            borrower: msg.sender,
+            lender: address(0), // Lender is unknown until the loan is funded
             nftContract: nftContract,
             tokenId: tokenId,
             loanAmount: loanAmount,
-            interestRate: interestRate,
+            repaymentAmount: repaymentAmount,
             duration: duration,
             startTime: 0,
-            active: true,
+            funded: false,
             repaid: false
         });
 
-        users[msg.sender].lentNFTs.push(loanId);
-
-        emit NFTListed(loanId, msg.sender, nftContract, tokenId, loanAmount, interestRate, duration);
-    }
-
-    /**
-     * @notice Borrows an NFT.
-     * @param loanId The ID of the loan.
-     */
-    function borrowNFT(uint256 loanId) external payable override nonReentrant {
-        Loan storage loan = loans[loanId];
-
-        require(loan.active, "Loan is not active");
-        require(loan.borrower == address(0), "Loan has already been borrowed");
-        require(msg.value >= loan.loanAmount, "Not enough collateral");
-
-        loan.borrower = msg.sender;
-        loan.startTime = block.timestamp;
-
-        users[msg.sender].borrowedNFTs.push(loanId);
-
-        emit LoanCreated(
+        emit LoanRequested(
             loanId,
-            loan.lender,
-            loan.borrower,
-            loan.nftContract,
-            loan.tokenId,
-            loan.loanAmount,
-            loan.interestRate,
-            loan.duration
+            msg.sender,
+            nftContract,
+            tokenId,
+            loanAmount,
+            repaymentAmount,
+            duration
         );
     }
 
     /**
-     * @notice Repays a loan.
-     * @param loanId The ID of the loan.
+     * @notice Funds an existing loan request.
+     * @param loanId The ID of the loan to fund.
+     */
+    function fundLoan(uint256 loanId) external payable override nonReentrant {
+        Loan storage loan = loans[loanId];
+
+        require(loan.borrower != address(0), "Loan does not exist");
+        require(!loan.funded, "Loan has already been funded");
+        require(
+            msg.value == loan.loanAmount,
+            "Incorrect ETH amount sent to fund loan"
+        );
+
+        loan.lender = msg.sender;
+        loan.funded = true;
+        loan.startTime = block.timestamp;
+
+        // Send the loan amount to the borrower
+        (bool success, ) = payable(loan.borrower).call{value: loan.loanAmount}(
+            ""
+        );
+        require(success, "Failed to send ETH to borrower");
+
+        emit LoanFunded(loanId, loan.borrower, loan.lender, loan.loanAmount);
+    }
+
+    /**
+     * @notice Repays a funded loan to reclaim the NFT collateral.
+     * @param loanId The ID of the loan to repay.
      */
     function repayLoan(uint256 loanId) external payable override nonReentrant {
         Loan storage loan = loans[loanId];
 
         require(loan.borrower == msg.sender, "You are not the borrower");
-        require(loan.active, "Loan is not active");
+        require(loan.funded, "Loan is not funded");
+        require(!loan.repaid, "Loan has already been repaid");
+        require(
+            msg.value == loan.repaymentAmount,
+            "Incorrect ETH amount for repayment"
+        );
 
-        uint256 interest = calculateInterest(loanId);
-        uint256 totalAmount = loan.loanAmount + interest;
-
-        require(msg.value >= totalAmount, "Not enough funds to repay loan");
-
-        loan.active = false;
         loan.repaid = true;
 
-        users[loan.borrower].accumulatedInterest += interest;
+        // Send the repayment to the lender
+        (bool success, ) = payable(loan.lender).call{
+            value: loan.repaymentAmount
+        }("");
+        require(success, "Failed to send ETH to lender");
 
-        payable(loan.lender).transfer(totalAmount);
-        IERC721(loan.nftContract).transferFrom(address(this), loan.borrower, loan.tokenId);
+        // Return the NFT to the borrower
+        IERC721(loan.nftContract).transferFrom(
+            address(this),
+            loan.borrower,
+            loan.tokenId
+        );
 
-        emit LoanRepaid(loanId, loan.borrower, totalAmount);
+        emit LoanRepaid(loanId, loan.borrower, loan.repaymentAmount);
     }
 
     /**
-     * @notice Liquidates a loan.
-     * @param loanId The ID of the loan.
+     * @notice Liquidates an expired loan, giving the NFT to the lender.
+     * @param loanId The ID of the loan to liquidate.
      */
     function liquidateLoan(uint256 loanId) external override nonReentrant {
         Loan storage loan = loans[loanId];
 
-        require(block.timestamp >= loan.startTime + loan.duration, "Loan has not expired yet");
+        require(loan.funded, "Loan is not funded");
         require(!loan.repaid, "Loan has already been repaid");
-        require(loan.active, "Loan is not active");
+        require(
+            block.timestamp >= loan.startTime + loan.duration,
+            "Loan has not expired yet"
+        );
 
-        loan.active = false;
+        loan.repaid = true; // Mark as settled to prevent further actions
 
-        payable(loan.lender).transfer(loan.loanAmount);
+        // Transfer the NFT collateral to the lender
+        IERC721(loan.nftContract).transferFrom(
+            address(this),
+            loan.lender,
+            loan.tokenId
+        );
 
-        emit LoanLiquidated(loanId, msg.sender);
-    }
-
-    /**
-     * @notice Calculates the interest for a loan.
-     * @param loanId The ID of the loan.
-     * @return The interest amount.
-     */
-    function calculateInterest(uint256 loanId) public view override returns (uint256) {
-        Loan storage loan = loans[loanId];
-        if (!loan.active || loan.borrower == address(0)) {
-            return 0;
-        }
-
-        uint256 timeElapsed = block.timestamp - loan.startTime;
-        return (loan.loanAmount * loan.interestRate * timeElapsed) / (100 * 365 days);
+        emit LoanLiquidated(loanId, loan.lender);
     }
 }
