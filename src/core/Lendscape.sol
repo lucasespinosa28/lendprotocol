@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
+pragma solidity 0.8.26;
 
 import {ILendscape} from "../interface/ILendscape.sol";
 import {LendscapeStorage} from "./LendscapeStorage.sol";
@@ -26,10 +26,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
      * @param _royaltyModuleAddress The address of the royalty module contract.
      * @param _ipAssetRegistryAddress The address of the IP Asset Registry contract.
      */
-    constructor(
-        address _royaltyModuleAddress,
-        address _ipAssetRegistryAddress
-    ) {
+    constructor(address _royaltyModuleAddress, address _ipAssetRegistryAddress) {
         owner = msg.sender;
         royaltyModule = IRoyaltyModule(_royaltyModuleAddress);
         ipAssetRegistry = IIPAssetRegistry(_ipAssetRegistryAddress);
@@ -84,15 +81,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
         });
 
         emit LoanRequested(
-            loanId,
-            ipId,
-            msg.sender,
-            nftContract,
-            tokenId,
-            loanToken,
-            loanAmount,
-            repaymentAmount,
-            duration
+            loanId, ipId, msg.sender, nftContract, tokenId, loanToken, loanAmount, repaymentAmount, duration
         );
     }
 
@@ -107,7 +96,7 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
         require(!loan.funded, "Loan has already been funded");
 
         IERC20(loan.loanToken).transferFrom(msg.sender, address(this), loan.loanAmount);
-        
+
         loan.lender = msg.sender;
         loan.funded = true;
         loan.startTime = block.timestamp;
@@ -131,8 +120,8 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
 
         address ipId = loan.ipId;
         address vaultAddress = royaltyModule.ipRoyaltyVaults(ipId);
-        uint256 claimableRoyalty = 0;
-        
+        uint256 claimableRoyalty = 0; //hange everywhere you call
+
         if (vaultAddress != address(0)) {
             claimableRoyalty = IIpRoyaltyVault(vaultAddress).claimableRevenue(ipId, loan.loanToken);
         }
@@ -149,17 +138,17 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
         if (claimableRoyalty > 0) {
             uint256 claimedAmount = IIpRoyaltyVault(vaultAddress).claimRevenueOnBehalf(ipId, loan.loanToken);
             bytes memory callData = abi.encodeWithSignature("transfer(address,uint256)", address(this), claimedAmount);
-            IIPAccount(ipId).execute(loan.loanToken, 0, callData);
+            IIPAccount(payable(ipId)).execute(loan.loanToken, 0, callData);
         }
-        
+
         uint256 amountToRepay = amountFromWallet + claimableRoyalty;
         require(amountToRepay >= loan.repaymentAmount, "Insufficient funds to repay loan");
 
         IERC20(loan.loanToken).transfer(loan.lender, loan.repaymentAmount);
-        if(amountToRepay > loan.repaymentAmount) {
+        if (amountToRepay > loan.repaymentAmount) {
             IERC20(loan.loanToken).transfer(loan.borrower, amountToRepay - loan.repaymentAmount);
         }
-        
+
         IERC721(loan.nftContract).transferFrom(address(this), loan.borrower, loan.tokenId);
 
         loan.repaid = true;
@@ -184,28 +173,29 @@ contract Lendscape is ILendscape, LendscapeStorage, ReentrancyGuard {
         address vaultAddress = royaltyModule.ipRoyaltyVaults(ipId);
         uint256 claimableRoyalty = 0;
 
-        if(vaultAddress != address(0)) {
+        if (vaultAddress != address(0)) {
             claimableRoyalty = IIpRoyaltyVault(vaultAddress).claimableRevenue(ipId, loan.loanToken);
         }
-        
+
         if (claimableRoyalty >= loan.repaymentAmount) {
             uint256 claimedAmount = IIpRoyaltyVault(vaultAddress).claimRevenueOnBehalf(ipId, loan.loanToken);
             bytes memory callData = abi.encodeWithSignature("transfer(address,uint256)", address(this), claimedAmount);
-            IIPAccount(ipId).execute(loan.loanToken, 0, callData);
+            IIPAccount(payable(ipId)).execute(loan.loanToken, 0, callData);
 
             IERC20(loan.loanToken).transfer(loan.lender, loan.repaymentAmount);
-            
-            if(claimedAmount > loan.repaymentAmount) {
+
+            if (claimedAmount > loan.repaymentAmount) {
                 IERC20(loan.loanToken).transfer(loan.borrower, claimedAmount - loan.repaymentAmount);
             }
-            
+
             IERC721(loan.nftContract).transferFrom(address(this), loan.borrower, loan.tokenId);
             emit LoanRepaid(loanId, ipId, loan.borrower, loan.repaymentAmount);
         } else {
             if (claimableRoyalty > 0) {
                 uint256 claimedAmount = IIpRoyaltyVault(vaultAddress).claimRevenueOnBehalf(ipId, loan.loanToken);
-                bytes memory callData = abi.encodeWithSignature("transfer(address,uint256)", address(this), claimedAmount);
-                IIPAccount(ipId).execute(loan.loanToken, 0, callData);
+                bytes memory callData =
+                    abi.encodeWithSignature("transfer(address,uint256)", address(this), claimedAmount);
+                IIPAccount(payable(ipId)).execute(loan.loanToken, 0, callData);
                 IERC20(loan.loanToken).transfer(loan.lender, claimableRoyalty);
             }
             IERC721(loan.nftContract).transferFrom(address(this), loan.lender, loan.tokenId);

@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
+pragma solidity 0.8.26;
 /**
  * @title ILendscape
  * @author Your Name
  * @notice This interface defines the functions and events for the peer-to-peer Lendscape platform.
  */
+
 interface ILendscape {
     event LoanRequested(
         uint256 indexed loanId,
@@ -20,19 +20,10 @@ interface ILendscape {
     );
 
     event LoanFunded(
-        uint256 indexed loanId,
-        address indexed ipId,
-        address indexed lender,
-        address borrower,
-        uint256 amountFunded
+        uint256 indexed loanId, address indexed ipId, address indexed lender, address borrower, uint256 amountFunded
     );
 
-    event LoanRepaid(
-        uint256 indexed loanId,
-        address indexed ipId,
-        address indexed borrower,
-        uint256 amountPaid
-    );
+    event LoanRepaid(uint256 indexed loanId, address indexed ipId, address indexed borrower, uint256 amountPaid);
 
     event LoanLiquidated(uint256 indexed loanId, address indexed ipId, address indexed lender);
 

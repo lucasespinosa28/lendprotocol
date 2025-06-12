@@ -1,11 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.20;
-
+pragma solidity 0.8.26;
 /**
  * @title LendscapeStorage
  * @author Your Name
  * @notice This contract defines the storage layout for the Lendscape peer-to-peer lending project.
  */
+
 contract LendscapeStorage {
     // A struct to store information about each loan.
     struct Loan {
